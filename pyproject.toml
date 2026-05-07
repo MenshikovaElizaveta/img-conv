@@ -1,0 +1,33 @@
+[project]
+name = "image-convolution"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.0.0",
+    "pillow>=10.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "mypy>=1.9.0",
+    "ruff>=0.3.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
