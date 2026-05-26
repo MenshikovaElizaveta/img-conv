@@ -1,31 +1,34 @@
-import argparse
+import typer
 
 from .convolver import apply_convolution
 from .utils import load_image, save_image
 
+app = typer.Typer()
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Свертка изображений")
 
-    parser.add_argument("input", help="Входной файл")
-    parser.add_argument("output", help="Выходной файл")
+@app.command()
+def main(
+    input_path: str,
+    output_path: str,
+    kernel: str = "blur",
+    border: str = "constant",
+) -> None:
+    """
+    Свертка изображений.
+    """
 
-    parser.add_argument("--kernel", default="blur", help="Выбор фильтра")
-    parser.add_argument("--border", default="constant", help="Тип обработки края")
-
-    args = parser.parse_args()
-    
-    image = load_image(args.input)
+    image = load_image(input_path)
 
     result = apply_convolution(
         image=image,
-        kernel_name=args.kernel,
-        border_type=args.border
+        kernel_name=kernel,
+        border_type=border,
     )
 
-    save_image(result, args.output)
+    save_image(result, output_path)
+
     print("Обработка завершена успешно!")
 
 
 if __name__ == "__main__":
-    main()
+    app()
