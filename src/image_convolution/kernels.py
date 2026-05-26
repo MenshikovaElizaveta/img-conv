@@ -15,26 +15,30 @@ KERNELS: dict[str, NDArray[np.float32]] = {
     ),
 
     # box blur
-    # обычное размытие
-    "box_blur": np.array(
-        [
-            [1, 1, 1],
-            [1, 1, 1],
-            [1, 1, 1],
-        ],
-        dtype=np.float32,
-    ) / 9,
+    # обычное усредненное размытие
+    "box_blur": (
+        np.array(
+            [
+                [1, 1, 1],
+                [1, 1, 1],
+                [1, 1, 1],
+            ],
+            dtype=np.float32,
+        ) / 9
+    ).astype(np.float32),
 
     # gaussian blur
     # размытие по Гауссу
-    "gaussian_blur": np.array(
-        [
-            [1, 2, 1],
-            [2, 4, 2],
-            [1, 2, 1],
-        ],
-        dtype=np.float32,
-    ) / 16,
+    "gaussian_blur": (
+        np.array(
+            [
+                [1, 2, 1],
+                [2, 4, 2],
+                [1, 2, 1],
+            ],
+            dtype=np.float32,
+        ) / 16
+    ).astype(np.float32),
 
     # sharpen
     # увеличение резкости
@@ -70,7 +74,7 @@ KERNELS: dict[str, NDArray[np.float32]] = {
     ),
 
     # sobel x
-    # вертикальные границы
+    # выделение вертикальных границ
     "sobel_x": np.array(
         [
             [-1, 0, 1],
@@ -81,7 +85,7 @@ KERNELS: dict[str, NDArray[np.float32]] = {
     ),
 
     # sobel y
-    # горизонтальные границы
+    # выделение горизонтальных границ
     "sobel_y": np.array(
         [
             [-1, -2, -1],
