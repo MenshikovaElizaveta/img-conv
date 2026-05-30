@@ -1,97 +1,57 @@
 import numpy as np
 from numpy.typing import NDArray
 
+
+def make_kernel(values: list[list[float]]) -> NDArray[np.float32]:
+    return np.array(values, dtype=np.float32)
+
+
 KERNELS: dict[str, NDArray[np.float32]] = {
+    "identity": make_kernel([
+        [0, 0, 0],
+        [0, 1, 0],
+        [0, 0, 0],
+    ]),
 
-    # identity
-    # изображение без изменений
-    "identity": np.array(
-        [
-            [0, 0, 0],
-            [0, 1, 0],
-            [0, 0, 0],
-        ],
-        dtype=np.float32,
-    ),
+    "box_blur": make_kernel([
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+    ]) / 9,
 
-    # box blur
-    # обычное усредненное размытие
-    "box_blur": (
-        np.array(
-            [
-                [1, 1, 1],
-                [1, 1, 1],
-                [1, 1, 1],
-            ],
-            dtype=np.float32,
-        ) / 9
-    ).astype(np.float32),
+    "gaussian_blur": make_kernel([
+        [1, 2, 1],
+        [2, 4, 2],
+        [1, 2, 1],
+    ]) / 16,
 
-    # gaussian blur
-    # размытие по Гауссу
-    "gaussian_blur": (
-        np.array(
-            [
-                [1, 2, 1],
-                [2, 4, 2],
-                [1, 2, 1],
-            ],
-            dtype=np.float32,
-        ) / 16
-    ).astype(np.float32),
+    "sharpen": make_kernel([
+        [0, -1, 0],
+        [-1, 5, -1],
+        [0, -1, 0],
+    ]),
 
-    # sharpen
-    # увеличение резкости
-    "sharpen": np.array(
-        [
-            [0, -1, 0],
-            [-1, 5, -1],
-            [0, -1, 0],
-        ],
-        dtype=np.float32,
-    ),
+    "edge_detection": make_kernel([
+        [-1, -1, -1],
+        [-1, 8, -1],
+        [-1, -1, -1],
+    ]),
 
-    # edge detection
-    # выделение границ
-    "edge_detection": np.array(
-        [
-            [-1, -1, -1],
-            [-1, 8, -1],
-            [-1, -1, -1],
-        ],
-        dtype=np.float32,
-    ),
+    "emboss": make_kernel([
+        [-2, -1, 0],
+        [-1, 1, 1],
+        [0, 1, 2],
+    ]),
 
-    # emboss
-    # эффект тиснения
-    "emboss": np.array(
-        [
-            [-2, -1, 0],
-            [-1, 1, 1],
-            [0, 1, 2],
-        ],
-        dtype=np.float32,
-    ),
+    "sobel_x": make_kernel([
+        [-1, 0, 1],
+        [-2, 0, 2],
+        [-1, 0, 1],
+    ]),
 
-    # sobel x
-    # выделение вертикальных границ
-    "sobel_x": np.array(
-        [
-            [-1, 0, 1],
-            [-2, 0, 2],
-            [-1, 0, 1],
-        ],
-        dtype=np.float32,
-    ),
-
-    # sobel y
-    # выделение горизонтальных границ
-    "sobel_y": np.array(
-        [
-            [-1, -2, -1],
-            [0, 0, 0],
-            [1, 2, 1],
-        ],
-        dtype=np.float32,
-    ),
+    "sobel_y": make_kernel([
+        [-1, -2, -1],
+        [0, 0, 0],
+        [1, 2, 1],
+    ]),
 }
