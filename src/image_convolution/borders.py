@@ -1,3 +1,5 @@
+from typing import cast
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -28,6 +30,7 @@ def apply_border(
 
     y_src = np.arange(out_h) - pad
     x_src = np.arange(out_w) - pad
+
     if border_type == "constant":
         result = np.zeros((out_h, out_w, c), dtype=np.float32)
         result[pad:pad + h, pad:pad + w] = image
@@ -46,9 +49,17 @@ def apply_border(
         x_src %= w
 
     else:
-        raise ValueError(f"Такого типа обработки края нет: {border_type}")
+        raise ValueError(
+            f"Такого типа обработки края нет: {border_type}"
+        )
 
     y = y_src[:, np.newaxis]
     x = x_src[np.newaxis, :]
 
-    return image[y, x]
+    return cast(
+        NDArray[np.float32],
+        np.asarray(
+            image[y, x],
+            dtype=np.float32,
+        ),
+    )
