@@ -55,3 +55,14 @@ KERNELS: dict[str, NDArray[np.float32]] = {
         [1, 2, 1],
     ]),
 }
+
+
+def get_kernel(
+    kernel_name: str,
+) -> NDArray[np.float32]:
+    if kernel_name not in KERNELS:
+        raise Exception(
+            f"Такого ядра не существует: {kernel_name}"
+        )
+
+    return KERNELS[kernel_name]
