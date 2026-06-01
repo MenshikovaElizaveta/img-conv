@@ -2,59 +2,59 @@ from pathlib import Path
 
 import numpy as np
 
-from src.image_convolution.convolver import apply_convolution
-from src.image_convolution.utils import load_image
+from image_convolution.convolver import apply_convolution
+from image_convolution.utils import load_image
 
 
 def test_convolution() -> None:
     cases = [
         (
-            "frog.jpg",
+            "frog.png",
             "identity",
             "constant",
-            "frog_identity_constant.jpg",
+            "frog_identity_constant.png",
         ),
         (
-            "pastery.jpg",
+            "pastery.png",
             "box_blur",
             "reflect",
-            "pastery_box_blur_reflect.jpg",
+            "pastery_box_blur_reflect.png",
         ),
         (
-            "sky.jpg",
+            "sky.png",
             "gaussian_blur",
             "replicate",
-            "sky_gaussian_blur_replicate.jpg",
+            "sky_gaussian_blur_replicate.png",
         ),
         (
-            "sky.jpg",
+            "sky.png",
             "sharpen",
             "wrap",
-            "sky_sharpen_wrap.jpg",
+            "sky_sharpen_wrap.png",
         ),
         (
-            "sky.jpg",
+            "sky.png",
             "edge_detection",
             "wrap",
-            "sky_edge_detection_wrap.jpg",
+            "sky_edge_detection_wrap.png",
         ),
         (
-            "sky.jpg",
+            "sky.png",
             "emboss",
             "wrap",
-            "sky_emboss_wrap.jpg",
+            "sky_emboss_wrap.png",
         ),
         (
-            "sky.jpg",
+            "sky.png",
             "sobel_x",
             "wrap",
-            "sky_sobel_x_wrap.jpg",
+            "sky_sobel_x_wrap.png",
         ),
         (
-            "sky.jpg",
+            "sky.png",
             "sobel_y",
             "wrap",
-            "sky_sobel_y_wrap.jpg",
+            "sky_sobel_y_wrap.png",
         ),
     ]
 
@@ -75,11 +75,10 @@ def test_convolution() -> None:
 
         assert result.shape == expected.shape
 
+        result = np.clip(result, 0.0, 255.0)
+
         assert np.allclose(
             result,
             expected,
             atol=1.0,
-        ), (
-            f"Ошибка для kernel={kernel}, "
-            f"border={border}"
-        )
+        ), (f"Ошибка для kernel={kernel}, border={border}")
