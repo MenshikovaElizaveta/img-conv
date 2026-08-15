@@ -25,28 +25,28 @@ def apply_border(
     pad: int,
     border_type: str,
 ) -> NDArray[np.float32]:
-    h, w, c = image.shape
-    out_h, out_w = h + 2 * pad, w + 2 * pad
+    height, width, channels = image.shape
+    padded_height, padded_width = height + 2 * pad, width + 2 * pad
 
-    y_src = np.arange(out_h) - pad
-    x_src = np.arange(out_w) - pad
+    y_src = np.arange(padded_height) - pad
+    x_src = np.arange(padded_width) - pad
 
     if border_type == "constant":
-        result = np.zeros((out_h, out_w, c), dtype=np.float32)
-        result[pad:pad + h, pad:pad + w] = image
+        result = np.zeros((padded_height, padded_width, channels), dtype=np.float32)
+        result[pad:pad + height, pad:pad + width] = image
         return result
 
     if border_type == "reflect":
-        y_src = reflect_indices(y_src, h)
-        x_src = reflect_indices(x_src, w)
+        y_src = reflect_indices(y_src, height)
+        x_src = reflect_indices(x_src, width)
 
     elif border_type == "replicate":
-        y_src = np.clip(y_src, 0, h - 1)
-        x_src = np.clip(x_src, 0, w - 1)
+        y_src = np.clip(y_src, 0, height - 1)
+        x_src = np.clip(x_src, 0, width - 1)
 
     elif border_type == "wrap":
-        y_src %= h
-        x_src %= w
+        y_src %= height
+        x_src %= width
 
     else:
         raise ValueError(

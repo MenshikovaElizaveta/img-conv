@@ -15,8 +15,8 @@ def apply_convolution(
 
     kernel = get_kernel(kernel_name)
 
-    kernel_h, kernel_w = kernel.shape
-    pad = kernel_h // 2
+    kernel_height, kernel_width = kernel.shape
+    pad = kernel_height // 2
 
     padded = apply_border(
         image,
@@ -31,8 +31,8 @@ def apply_convolution(
         for x in range(width):
             for channel in range(channels):
                 window = padded[
-                    y:y + kernel_h,
-                    x:x + kernel_w,
+                    y:y + kernel_height,
+                    x:x + kernel_width,
                     channel,
                 ]
 
