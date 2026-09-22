@@ -1,32 +1,18 @@
 import json
-import time
-from collections.abc import Callable
-from pathlib import Path
+import pathlib
 
 import cv2
 import numpy as np
 from numpy.typing import NDArray
 from PIL import Image, ImageFilter
+from scipy import stats
 
 from image_convolution.convolver import apply_convolution
 from image_convolution.kernels import get_kernel
 
-SIZES: list[int] = [128, 512, 1024, 2048]
-REPEATS: int = 30
-WARMUP: int = 5
+SIZES: list[int] = [1024, 2048, 4096]
 KERNEL_NAME: str = "box_blur"
 BORDER_TYPE: str = "constant"
-
-LABELS: dict[str, str] = {
-    "my": "Авторская реализация",
-    "cv": "OpenCV",
-    "pil": "Pillow",
-}
-
-AdapterFunc = Callable[
-    [NDArray[np.float32], str, str], 
-    NDArray[np.float32]
-]
 
 
 def run_my_impl(
@@ -34,7 +20,21 @@ def run_my_impl(
     kernel_name: str,
     border_type: str,
 ) -> NDArray[np.float32]:
-    return apply_convolution(image, kernel_name, border_type)
+    grayscale = image.ndim == 2
+
+    if grayscale:
+        image = image[..., np.newaxis]
+
+    result = apply_convolution(
+        image,
+        kernel_name,
+        border_type,
+    )
+
+    if grayscale:
+        return result[..., 0]
+
+    return result
 
 
 def run_opencv(
@@ -42,24 +42,24 @@ def run_opencv(
     kernel_name: str,
     border_type: str,
 ) -> NDArray[np.float32]:
-    kernel_matrix = get_kernel(kernel_name)
-    
-    border_map: dict[str, int] = {
+    kernel = get_kernel(kernel_name)
+
+    borders: dict[str, int] = {
         "constant": cv2.BORDER_CONSTANT,
-        "reflect": cv2.BORDER_REFLECT_101, 
+        "reflect": cv2.BORDER_REFLECT_101,
         "replicate": cv2.BORDER_REPLICATE,
         "wrap": cv2.BORDER_WRAP,
     }
-    opencv_border = border_map[border_type]
-    
-    result = cv2.filter2D(
-        image,
-        ddepth=cv2.CV_32F,
-        kernel=kernel_matrix,
-        borderType=opencv_border,
+
+    return np.asarray(
+        cv2.filter2D(
+            image,
+            ddepth=cv2.CV_32F,
+            kernel=kernel,
+            borderType=borders[border_type],
+        ),
+        dtype=np.float32,
     )
-    
-    return np.asarray(result, dtype=np.float32)
 
 
 def run_pillow(
@@ -67,78 +67,211 @@ def run_pillow(
     kernel_name: str,
     border_type: str,
 ) -> NDArray[np.float32]:
-    pillow_image = Image.fromarray((image * 255).astype(np.uint8))
-    
-    kernel_matrix = get_kernel(kernel_name)
-    kernel_size = kernel_matrix.shape[0]
-    kernel_list = kernel_matrix.flatten().tolist()
-    
-    pillow_filter = ImageFilter.Kernel(
-        size=(kernel_size, kernel_size),
-        kernel=kernel_list,
-        scale=1,
+    pillow_image = Image.fromarray(
+        (image * 255).astype(np.uint8)
     )
-    filtered_image = pillow_image.filter(pillow_filter)
-    
-    result = np.asarray(filtered_image, dtype=np.float32) / 255.0
-    return result
+
+    kernel = get_kernel(kernel_name)
+
+    filtered = pillow_image.filter(
+        ImageFilter.Kernel(
+            size=kernel.shape,
+            kernel=kernel.flatten().tolist(),
+            scale=1,
+        )
+    )
+
+    return np.asarray(
+        filtered,
+        dtype=np.float32,
+    ) / 255.0
 
 
-def measure_time(
-    func: AdapterFunc,
-    image: NDArray[np.float32],
-    kernel_name: str,
-    border_type: str,
-) -> dict[str, float]:
-    for _ in range(WARMUP):
-        func(image, kernel_name, border_type)
-        
-    execution_times: list[float] = []
-    for _ in range(REPEATS):
-        start_time = time.perf_counter()
-        func(image, kernel_name, border_type)
-        end_time = time.perf_counter()
-        execution_times.append(end_time - start_time)
-        
-    times_array = np.array(execution_times)
-    
-    return {
-        "mean_ms": float(np.mean(times_array) * 1000),
-        "std_ms": float(np.std(times_array) * 1000),
-    }
+def run_benchmark() -> pathlib.Path:
+    import pytest
+
+    output = (
+        pathlib.Path(__file__).parent
+        / "data"
+        / "benchmark_raw.json"
+    )
+
+    result = pytest.main(
+        [
+            str(
+                pathlib.Path(__file__).parent
+                / "test_benchmark.py"
+            ),
+            "--benchmark-json",
+            str(output),
+            "--benchmark-min-rounds=10",
+            "--benchmark-max-time=1",
+            "--benchmark-precision=0.02",
+            "--benchmark-confidence=0.95",
+            "--benchmark-warmup=on",
+            "--benchmark-disable-gc",
+        ]
+    )
+
+    if result != 0:
+        raise RuntimeError(
+            "Benchmark execution failed"
+        )
+
+    return output
 
 
-def run_experiments() -> list[dict[str, float | int | str]]:
-    results: list[dict[str, float | int | str]] = []
-    
-    print("Начало замеров...")
-    
-    for size in SIZES:
-        print(f"Размер {size}x{size}")
-        synthetic_image = np.random.rand(size, size, 3).astype(np.float32)
-        
-        stats = {
-            "my": measure_time(run_my_impl, synthetic_image, KERNEL_NAME, BORDER_TYPE),
-            "cv": measure_time(run_opencv, synthetic_image, KERNEL_NAME, BORDER_TYPE),
-            "pil": measure_time(run_pillow, synthetic_image, KERNEL_NAME, BORDER_TYPE),
-        }
-        
-        row: dict[str, float | int | str] = {"size": size}
-        for key, label in LABELS.items():
-            row[f"{label}_среднее_мс"] = stats[key]["mean_ms"]
-            row[f"{label}_отклонение_мс"] = stats[key]["std_ms"]
-        results.append(row)
-        
+def make_results(
+    benchmark_file: pathlib.Path,
+) -> list[dict[str, float | int | str | bool]]:
+    data = json.loads(
+        benchmark_file.read_text(
+            encoding="utf-8"
+        )
+    )
+
+    grouped: dict[
+        tuple[int, str],
+        dict[str, object],
+    ] = {}
+
+    for benchmark in data["benchmarks"]:
+        info = benchmark["extra_info"]
+
+        size = int(info["size"])
+        mode = str(info["mode"])
+        implementation = str(
+            info["implementation"]
+        )
+
+        key = (size, mode)
+
+        if key not in grouped:
+            grouped[key] = {
+                "size": size,
+                "mode": mode,
+                "samples": {},
+            }
+
+        samples = grouped[key]["samples"]
+
+        if isinstance(samples, dict):
+            samples[implementation] = (
+                benchmark["stats"]["data"]
+            )
+
+    results: list[
+        dict[str, float | int | str | bool]
+    ] = []
+
+    for item in grouped.values():
+        samples = item["samples"]
+
+        if not isinstance(samples, dict):
+            continue
+
+        my_samples = np.asarray(
+            samples["my"],
+            dtype=np.float64,
+        )
+        cv_samples = np.asarray(
+            samples["cv"],
+            dtype=np.float64,
+        )
+        pil_samples = np.asarray(
+            samples["pil"],
+            dtype=np.float64,
+        )
+
+        my_mean = float(
+            np.mean(my_samples) * 1000
+        )
+        cv_mean = float(
+            np.mean(cv_samples) * 1000
+        )
+        pil_mean = float(
+            np.mean(pil_samples) * 1000
+        )
+
+        my_std = float(
+            np.std(my_samples, ddof=1) * 1000
+        )
+        cv_std = float(
+            np.std(cv_samples, ddof=1) * 1000
+        )
+        pil_std = float(
+            np.std(pil_samples, ddof=1) * 1000
+        )
+
+        cv_p_value = float(
+            stats.ttest_ind(
+                my_samples,
+                cv_samples,
+                equal_var=False,
+            ).pvalue
+        )
+
+        pil_p_value = float(
+            stats.ttest_ind(
+                my_samples,
+                pil_samples,
+                equal_var=False,
+            ).pvalue
+        )
+
+        results.append(
+            {
+                "size": int(str(item["size"])),
+                "mode": str(item["mode"]),
+                "my_mean_ms": my_mean,
+                "my_std_ms": my_std,
+                "cv_mean_ms": cv_mean,
+                "cv_std_ms": cv_std,
+                "pil_mean_ms": pil_mean,
+                "pil_std_ms": pil_std,
+                "my_vs_cv_ratio": my_mean / cv_mean,
+                "my_vs_pil_ratio": my_mean / pil_mean,
+                "my_vs_cv_significant": cv_p_value < 0.05,
+                "my_vs_pil_significant": pil_p_value < 0.05,
+                "my_vs_cv_p_value": cv_p_value,
+                "my_vs_pil_p_value": pil_p_value,
+            }
+        )
+
     return results
 
 
-def save_results(results: list[dict[str, float | int | str]]) -> Path:
-    output_directory = Path(__file__).parent / "data"
-    output_directory.mkdir(exist_ok=True)
-    output_file = output_directory / "results.json"
-    
-    with open(output_file, "w", encoding="utf-8") as json_file:
-        json.dump(results, json_file, indent=2, ensure_ascii=False)
-        
-    print(f"Результаты сохранены в {output_file}")
+def run_experiments() -> list[
+    dict[str, float | int | str | bool]
+]:
+    benchmark_file = run_benchmark()
+
+    return make_results(
+        benchmark_file
+    )
+
+
+def save_results(
+    results: list[
+        dict[str, float | int | str | bool]
+    ],
+) -> pathlib.Path:
+    output_file = (
+        pathlib.Path(__file__).parent
+        / "data"
+        / "results.json"
+    )
+
+    with open(
+        output_file,
+        "w",
+        encoding="utf-8",
+    ) as file:
+        json.dump(
+            results,
+            file,
+            indent=2,
+            ensure_ascii=False,
+        )
+
     return output_file
