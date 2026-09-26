@@ -13,6 +13,10 @@ dev = [
     "pytest>=8.0.0",
     "mypy>=1.9.0",
     "ruff>=0.3.0",
+    "opencv-python>=4.8.0",
+    "matplotlib>=3.8.0",
+    "pytest-benchmark>=5.1.0",
+    "scipy>=1.14.0",
 ]
 
 [build-system]
@@ -35,3 +39,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+markers = [
+    "performance: performance benchmarks",
+]
