@@ -87,40 +87,6 @@ def run_pillow(
     ) / 255.0
 
 
-def run_benchmark() -> pathlib.Path:
-    import pytest
-
-    output = (
-        pathlib.Path(__file__).parent
-        / "data"
-        / "benchmark_raw.json"
-    )
-
-    result = pytest.main(
-        [
-            str(
-                pathlib.Path(__file__).parent
-                / "test_benchmark.py"
-            ),
-            "--benchmark-json",
-            str(output),
-            "--benchmark-min-rounds=10",
-            "--benchmark-max-time=1",
-            "--benchmark-precision=0.02",
-            "--benchmark-confidence=0.95",
-            "--benchmark-warmup=on",
-            "--benchmark-disable-gc",
-        ]
-    )
-
-    if result != 0:
-        raise RuntimeError(
-            "Benchmark execution failed"
-        )
-
-    return output
-
-
 def make_results(
     benchmark_file: pathlib.Path,
 ) -> list[dict[str, float | int | str | bool]]:
@@ -241,11 +207,11 @@ def make_results(
     return results
 
 
-def run_experiments() -> list[
+def run_experiments(
+    benchmark_file: pathlib.Path,
+) -> list[
     dict[str, float | int | str | bool]
 ]:
-    benchmark_file = run_benchmark()
-
     return make_results(
         benchmark_file
     )
