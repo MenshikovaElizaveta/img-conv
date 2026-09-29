@@ -13,6 +13,8 @@ from image_convolution.kernels import get_kernel
 SIZES: list[int] = [1024, 2048, 4096]
 KERNEL_NAME: str = "box_blur"
 BORDER_TYPE: str = "constant"
+TIME_MULTIPLIER = 1000
+SIGNIFICANCE_LEVEL = 0.05
 
 
 def run_my_impl(
@@ -150,23 +152,23 @@ def make_results(
         )
 
         my_mean = float(
-            np.mean(my_samples) * 1000
+            np.mean(my_samples) * TIME_MULTIPLIER
         )
         cv_mean = float(
-            np.mean(cv_samples) * 1000
+            np.mean(cv_samples) * TIME_MULTIPLIER
         )
         pil_mean = float(
-            np.mean(pil_samples) * 1000
+            np.mean(pil_samples) * TIME_MULTIPLIER
         )
 
         my_std = float(
-            np.std(my_samples, ddof=1) * 1000
+            np.std(my_samples, ddof=1) * TIME_MULTIPLIER
         )
         cv_std = float(
-            np.std(cv_samples, ddof=1) * 1000
+            np.std(cv_samples, ddof=1) * TIME_MULTIPLIER
         )
         pil_std = float(
-            np.std(pil_samples, ddof=1) * 1000
+            np.std(pil_samples, ddof=1) * TIME_MULTIPLIER
         )
 
         cv_p_value = float(
@@ -197,8 +199,8 @@ def make_results(
                 "pil_std_ms": pil_std,
                 "my_vs_cv_ratio": my_mean / cv_mean,
                 "my_vs_pil_ratio": my_mean / pil_mean,
-                "my_vs_cv_significant": cv_p_value < 0.05,
-                "my_vs_pil_significant": pil_p_value < 0.05,
+                "my_vs_cv_significant": cv_p_value < SIGNIFICANCE_LEVEL,
+                "my_vs_pil_significant": pil_p_value < SIGNIFICANCE_LEVEL,
                 "my_vs_cv_p_value": cv_p_value,
                 "my_vs_pil_p_value": pil_p_value,
             }
